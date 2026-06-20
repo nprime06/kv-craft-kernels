@@ -20,6 +20,7 @@ from rich.table import Table
 from .config import PortConfig
 from .ledger import Ledger
 from .roofline import OASIS_DMD, budget
+from .streaming import run_central_server, run_laptop_bridge
 
 console = Console()
 ROOT = Path(__file__).resolve().parents[2]
@@ -135,6 +136,68 @@ def harvest(problem: str) -> None:
 	console.print(
 		f"[red]harvest {problem} is a stub.[/red] Implement harvest/hooks.py against a live "
 		"Oasis-500M rollout to emit task_files/golden.npz."
+	)
+
+
+@main.command("serve-central")
+@click.option("--action-host", default="0.0.0.0", show_default=True)
+@click.option("--action-port", default=7780, show_default=True)
+@click.option("--client-latent-port", default=7781, show_default=True)
+@click.option("--latent-height", default=28, show_default=True)
+@click.option("--latent-width", default=50, show_default=True)
+@click.option("--fps", default=12.0, show_default=True)
+def serve_central(
+	action_host: str,
+	action_port: int,
+	client_latent_port: int,
+	latent_height: int,
+	latent_width: int,
+	fps: float,
+) -> None:
+	"""Run the central split-serving relay.
+
+	This is the integration seam for the B300/JAX latent generator. The checked-in mode uses
+	zero latents as a network/protocol smoke test until the real generator is wired.
+	"""
+	run_central_server(
+		action_host=action_host,
+		action_port=action_port,
+		client_latent_port=client_latent_port,
+		latent_height=latent_height,
+		latent_width=latent_width,
+		fps=fps,
+	)
+
+
+@main.command("laptop-bridge")
+@click.option("--server-host", required=True, help="Central server hostname or IP.")
+@click.option("--player-id", required=True, type=int)
+@click.option("--server-action-port", default=7780, show_default=True)
+@click.option("--listen-latent-port", default=7781, show_default=True)
+@click.option("--local-action-port", default=7790, show_default=True)
+@click.option("--decoder-host", default="127.0.0.1", show_default=True)
+@click.option("--decoder-port", default=7777, show_default=True)
+@click.option("--action-fps", default=60.0, show_default=True)
+def laptop_bridge(
+	server_host: str,
+	player_id: int,
+	server_action_port: int,
+	listen_latent_port: int,
+	local_action_port: int,
+	decoder_host: str,
+	decoder_port: int,
+	action_fps: float,
+) -> None:
+	"""Run the laptop bridge between input, central latents, and local Metal decode."""
+	run_laptop_bridge(
+		server_host=server_host,
+		player_id=player_id,
+		server_action_port=server_action_port,
+		listen_latent_port=listen_latent_port,
+		local_action_port=local_action_port,
+		decoder_host=decoder_host,
+		decoder_port=decoder_port,
+		action_fps=action_fps,
 	)
 
 

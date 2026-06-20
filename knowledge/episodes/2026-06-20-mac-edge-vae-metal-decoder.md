@@ -3,7 +3,7 @@
 Added a native macOS Swift/Metal KV Craft VAE decoder under:
 
 ```text
-edge/solaris-vae-metal-decoder/
+edge/kvcraft-vae-metal-decoder/
 ```
 
 This is separate from the B300/H100 server-kernel loop. It targets the client-side bottleneck in a split-serving design: the server streams KV Craft latents, while the Mac decodes VAE latents to RGB locally on the Apple GPU.
@@ -59,4 +59,3 @@ Neither experiment is guaranteed to preserve quality. They should be judged visu
 - Wire decoded GPU tensor to BGRA texture presentation and upscale without CPU readback.
 - Measure real UDP stream latency and jitter.
 - Confirm the exact server-side latent shape in the active serving path.
-

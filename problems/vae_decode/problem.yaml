@@ -25,7 +25,7 @@ tooling: |
   Architectural note (out of scope for the port, flag to model team): depthwise-separable conv3d
   can beat any kernel work ~5-6x at >93% quality.
   Prototype (ViT-VAE): same SDPA tooling as attention.
-  Edge client (Apple GPU): see edge/solaris-vae-metal-decoder. The local Mac path uses MPSGraph
+  Edge client (Apple GPU): see edge/kvcraft-vae-metal-decoder. The local Mac path uses MPSGraph
   with cached causal conv3d lowered into temporal conv2d slices, plus a full steady-state graph
   once decoder caches are warm. Current practical path to 10-15 FPS is smaller even latent grids
   such as 28x50 plus GPU-resident display upscale.

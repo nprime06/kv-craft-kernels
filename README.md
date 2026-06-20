@@ -19,10 +19,15 @@ kernels (a methodology demo). **Pivoted to KV Craft (JAX);** bringing it up on t
 real shapes, then kernel opt moves to JAX-native. Live state: `knowledge/loop_state.md`. Findings:
 `knowledge/episodes/`.
 
-Client-side edge work is now tracked separately under `edge/`: `edge/solaris-vae-metal-decoder/`
+Client-side edge work is now tracked separately under `edge/`: `edge/kvcraft-vae-metal-decoder/`
 is a native macOS Swift/Metal KV Craft VAE decoder for the split-serving path where the server
 streams latents and the Mac decodes RGB locally. See
-`edge/solaris-vae-metal-decoder/Docs/EDGE_INFERENCE_OPTIMIZATIONS.md`.
+`edge/kvcraft-vae-metal-decoder/Docs/EDGE_INFERENCE_OPTIMIZATIONS.md`.
+
+Split-serving glue is now in `src/oasis_forge/streaming.py`: B300/H100 servers receive laptop
+actions, generate latent chunks, and stream framed f16 latents back to each laptop; each laptop
+bridge strips the frame header and forwards raw latent bytes to the local Metal decoder. See
+`knowledge/semantic/split_serving_architecture.md`.
 
 ---
 
@@ -136,9 +141,10 @@ harvest/
   hooks.py                  # call-site instrumentation -> golden dumps  (STUB until rollout exists)
   README.md
 edge/
-  solaris-vae-metal-decoder/ # macOS Swift/Metal client-side KV Craft VAE decoder
+  kvcraft-vae-metal-decoder/ # macOS Swift/Metal client-side KV Craft VAE decoder
 src/oasis_forge/
   config.py                # sm_90 Hopper hardware config + port config
+  streaming.py             # central-server/laptop split-serving protocol + bridge loops
   ledger.py                # flat JSONL attempt ledger (no DB)
   gate.py                  # two-tier drift gate
   remote.py                # H100 SSH executor  (STUB until box exists)
@@ -157,6 +163,38 @@ scripts/
 **Design + skeleton.** Harvest hooks and the H100 remote executor are stubs — they wire up
 the moment (a) Oasis-500M does one rollout on a box and (b) there's an H100 to benchmark on.
 Everything precision/gate/ledger-side is real and CPU-testable.
+
+## Split-Serving Smoke Test
+
+Central server, on the B300/H100 side:
+
+```bash
+oasis-forge serve-central --latent-height 28 --latent-width 50 --fps 12
+```
+
+Laptop:
+
+```bash
+cd edge/kvcraft-vae-metal-decoder
+swift build -c release
+.build/release/kvcraft-vae-metal --weights /path/to/kvcraft-vae-decoder-f16 \
+  --udp-port 7777 --latent-height 28 --latent-width 50
+```
+
+In a second laptop terminal:
+
+```bash
+oasis-forge laptop-bridge --server-host <central-host> --player-id 0
+```
+
+Local input capture should send JSON action updates to the bridge:
+
+```bash
+printf '{"buttons":1,"mouse_dx":0.5,"mouse_dy":0.0}' | nc -u -w0 127.0.0.1 7790
+```
+
+The checked-in central loop currently emits zero latents as a protocol smoke test. Replace
+`ZeroLatentGenerator` with the live JAX/KV Craft latent generator to drive real frames.
 
 ## Open dependencies (gate the build)
 

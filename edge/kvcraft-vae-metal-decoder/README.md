@@ -66,6 +66,8 @@ The decoder CLI default latent grid is `45x80`, which decodes to `360x640` RGB. 
 
 For the stock KV Craft world-model generator, prefer even latent heights and widths. The generator patchifies latents with spatial `2x2` patches, and the action module currently has default-resolution token-count assumptions. The decoder itself can benchmark odd grids, but serving them from the unmodified generator would require padding/cropping or generator-side code changes.
 
+For the repo-level split-serving bridge, use `28x50` by default. It fits in one safe UDP datagram after the bridge strips the framing header and forwards the raw latent payload locally. A full `45x80` latent is `115200` bytes and needs fragmentation or a stream transport; do not send it as one UDP packet over the current bridge.
+
 Run:
 
 ```bash
