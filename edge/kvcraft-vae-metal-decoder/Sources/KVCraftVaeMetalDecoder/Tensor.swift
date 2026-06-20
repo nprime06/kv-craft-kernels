@@ -33,7 +33,7 @@ public final class GpuTensor {
     public init(device: MTLDevice, shape: TensorShape, options: MTLResourceOptions = .storageModePrivate) throws {
         self.shape = shape
         guard let buffer = device.makeBuffer(length: max(1, shape.byteCountF16), options: options) else {
-            throw SolarisMetalError.allocationFailed("buffer \(shape)")
+            throw KVCraftMetalError.allocationFailed("buffer \(shape)")
         }
         self.buffer = buffer
     }
@@ -44,7 +44,7 @@ public final class GpuTensor {
     }
 }
 
-public enum SolarisMetalError: Error, CustomStringConvertible {
+public enum KVCraftMetalError: Error, CustomStringConvertible {
     case noMetalDevice
     case libraryLoadFailed(String)
     case pipelineFailed(String)

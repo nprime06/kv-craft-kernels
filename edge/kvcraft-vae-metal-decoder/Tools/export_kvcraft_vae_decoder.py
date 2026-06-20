@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Export Solaris' WanVAE decoder weights from the Hugging Face Orbax checkpoint
+Export KVCraft' WanVAE decoder weights from the Hugging Face Orbax checkpoint
 into the simple float16 archive consumed by the Swift/Metal runtime.
 
-Run this from an environment that can import the Solaris repo:
+Run this from an environment that can import the KVCraft repo:
 
-  cd /path/to/solaris
-  python /path/to/export_solaris_vae_decoder.py \
-    --solaris-root . \
+  cd /path/to/kvcraft
+  python /path/to/export_kvcraft_vae_decoder.py \
+    --kvcraft-root . \
     --vae-checkpoint ./pretrained/vae.pt \
-    --out ./solaris-vae-decoder-f16
+    --out ./kvcraft-vae-decoder-f16
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import numpy as np
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--solaris-root", required=True, type=pathlib.Path)
+    parser.add_argument("--kvcraft-root", required=True, type=pathlib.Path)
     parser.add_argument("--vae-checkpoint", required=True, type=pathlib.Path)
     parser.add_argument("--out", required=True, type=pathlib.Path)
     return parser.parse_args()
@@ -72,7 +72,7 @@ class ArchiveWriter:
         self.out_dir.mkdir(parents=True, exist_ok=True)
         (self.out_dir / "weights.f16.bin").write_bytes(self.blob)
         manifest = {
-            "format": "solaris-vae-decoder-f16-v1",
+            "format": "kvcraft-vae-decoder-f16-v1",
             "source": self.source,
             "tensors": self.entries,
         }
@@ -94,7 +94,7 @@ def emit_norm(writer: ArchiveWriter, base: str, norm: Any) -> None:
 
 
 def export(args: argparse.Namespace) -> None:
-    root = args.solaris_root.resolve()
+    root = args.kvcraft_root.resolve()
     sys.path.insert(0, str(root))
 
     import orbax.checkpoint as ocp

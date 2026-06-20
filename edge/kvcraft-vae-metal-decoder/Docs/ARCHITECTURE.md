@@ -2,7 +2,7 @@
 
 ## Upstream Shape
 
-The model code is in `solaris-wm/solaris/src/models/wan_vae.py`; `solaris-wm/solaris-engine` only prepares the Minecraft datasets. `get_vae_model()` configures:
+The model code is in `kvcraft-wm/kvcraft/src/models/wan_vae.py`; `kvcraft-wm/kvcraft-engine` only prepares the Minecraft datasets. `get_vae_model()` configures:
 
 ```python
 dim=96
@@ -17,7 +17,7 @@ The decoder reverses the temporal downsampling order, so it has one spatial-only
 
 ## Streaming Contract
 
-Solaris decode logic initializes an empty decoder feature cache. For a latent sequence with `L` latent frames:
+KV Craft decode logic initializes an empty decoder feature cache. For a latent sequence with `L` latent frames:
 
 ```text
 output_frames = 1 + 4 * (L - 1)
@@ -25,11 +25,11 @@ output_frames = 1 + 4 * (L - 1)
 
 That means the first streamed latent produces one image frame. Each later latent produces the next four frames.
 
-The local runtime mirrors that behavior by preserving a two-frame cache per causal 3D convolution. The `upsample3d` resample blocks follow Solaris' special first-call behavior: the first call seeds a zero cache and skips temporal convolution.
+The local runtime mirrors that behavior by preserving a two-frame cache per causal 3D convolution. The `upsample3d` resample blocks follow KV Craft' special first-call behavior: the first call seeds a zero cache and skips temporal convolution.
 
 ## Tensor Layout
 
-All runtime tensors are NHWTC as in Solaris/JAX:
+All runtime tensors are NHWTC as in KV Craft/JAX:
 
 ```text
 B, T, H, W, C
@@ -75,7 +75,7 @@ decoder.head.2 conv
 ## Optimized Kernel Paths
 
 - Full steady-state MPSGraph decoder graph: default path after all causal caches are valid. It emits the four-frame steady chunk and all updated cache tensors from one graph execution.
-- MPSGraph 2D-lowered causal convolution: default fast path for cached Solaris causal convolutions and no-padding pointwise convs. Cached `Kt=3` convolutions are split into temporal slices and run through optimized MPSGraph `conv2D` kernels.
+- MPSGraph 2D-lowered causal convolution: default fast path for cached KV Craft causal convolutions and no-padding pointwise convs. Cached `Kt=3` convolutions are split into temporal slices and run through optimized MPSGraph `conv2D` kernels.
 - MPSGraph `conv3D`: fallback for first-frame padded temporal convolutions and for comparison behind `SOLARIS_DISABLE_CONV3D_AS_2D=1`.
 - MPSGraph `resizeNearest -> conv2D`: default fast path for spatial upsample blocks.
 - Experimental phase-folded spatial upsample behind `SOLARIS_PHASE_UPSAMPLE=1`: folds nearest-upsample+3x3 conv into four low-res 2x2 phase convolutions plus a Metal interleave. It was neutral in the full decoder benchmark, so it is not default.
@@ -89,7 +89,7 @@ decoder.head.2 conv
 ## Profiling Priority
 
 1. Wire GPU-resident display output: convert decoded RGB to BGRA texture and upscale in a render pass or MetalFX without CPU readback.
-2. Validate output numerics against Solaris/JAX on real `vae.pt` weights for both default and smaller latent grids.
+2. Validate output numerics against KV Craft/JAX on real `vae.pt` weights for both default and smaller latent grids.
 3. Profile high-resolution residual blocks after the steady-state graph change. The remaining work is still dominated by `180x320x192` and `360x640x96` convs at the default output size.
 4. Treat native MPS int8/int4 as not useful for this workload unless Apple exposes a quantized convolution or a faster ML pipeline path. The current MPS affine int8/int4 matrix kernels are slower than fp16 on representative tiles.
 5. Keep decoded frames on GPU and render directly from a Metal texture array.
@@ -118,6 +118,6 @@ The clean path to `10-15 FPS` is smaller server-side latent grids plus local ups
 | `27x48` | `216x384` | `13.11` | odd height; needs padding/crop or generator change |
 | `26x46` | `208x368` | `14.22` | yes |
 
-The VAE decoder is convolutional and can run odd latent grids. The stock Solaris generator is more constrained: it uses spatial `2x2` latent patches, RoPE from runtime grid sizes, KV-cache sizes from runtime latent H/W, and an action-module assertion for the default `880` or `1760` spatial token count. Smaller even grids should be a runtime/config/code-path change, not a new transformer architecture, but the action-module token-count assumption must be parameterized.
+The VAE decoder is convolutional and can run odd latent grids. The stock KV Craft generator is more constrained: it uses spatial `2x2` latent patches, RoPE from runtime grid sizes, KV-cache sizes from runtime latent H/W, and an action-module assertion for the default `880` or `1760` spatial token count. Smaller even grids should be a runtime/config/code-path change, not a new transformer architecture, but the action-module token-count assumption must be parameterized.
 
 Bypassing attention with `SOLARIS_SKIP_ATTENTION=1` is still essentially unchanged, so attention is not the current wall. The steady-state four-frame chunk remains dominated by the high-resolution residual blocks at `180x320x192` and `360x640x96`.

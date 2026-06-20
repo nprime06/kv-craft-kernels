@@ -1,12 +1,12 @@
-# Solaris VAE Metal Decoder
+# KV Craft VAE Metal Decoder
 
-This is a native macOS Swift/Metal serving scaffold for the Solaris VAE decoder. It targets the current Solaris model repo layout inspected at commit `68e0ed3` and the Solaris Engine data repo inspected at commit `430f56f`.
+This is a native macOS Swift/Metal serving scaffold for the KV Craft VAE decoder. It targets the current KV Craft model repo layout inspected at commit `68e0ed3` and the KV Craft Engine data repo inspected at commit `430f56f`.
 
-The linked `solaris-wm/solaris-engine` repo is a data-collection engine. The VAE implementation lives in `solaris-wm/solaris`, specifically `src/models/wan_vae.py`.
+The linked `kvcraft-wm/kvcraft-engine` repo is a data-collection engine. The VAE implementation lives in `kvcraft-wm/kvcraft`, specifically `src/models/wan_vae.py`.
 
 ## What Is Implemented
 
-- Static Solaris WanVAE decoder graph:
+- Static KV Craft WanVAE decoder graph:
   - `dim=96`
   - `z_dim=16`
   - `dim_mult=[1, 2, 4, 4]`
@@ -37,19 +37,19 @@ The linked `solaris-wm/solaris-engine` repo is a data-collection engine. The VAE
 swift build -c release
 ```
 
-The package now requires macOS 15+ because it uses MPSGraph SDPA. Full Xcode is not required for this path; Command Line Tools 26.5 with Swift 6.3.2 built it successfully. `xcrun metal` is still not required because the runtime compiles `SolarisVAE.metal` from package resources with `device.makeLibrary(source:options:)`.
+The package now requires macOS 15+ because it uses MPSGraph SDPA. Full Xcode is not required for this path; Command Line Tools 26.5 with Swift 6.3.2 built it successfully. `xcrun metal` is still not required because the runtime compiles `KV CraftVAE.metal` from package resources with `device.makeLibrary(source:options:)`.
 
 ## Export Weights
 
-From a Solaris Python environment:
+From a KV Craft Python environment:
 
 ```bash
-cd /path/to/solaris
-hf download nyu-visionx/solaris --local-dir ./pretrained
-python /path/to/solaris-vae-metal-decoder/Tools/export_solaris_vae_decoder.py \
-  --solaris-root . \
+cd /path/to/kvcraft
+hf download nyu-visionx/kvcraft --local-dir ./pretrained
+python /path/to/kvcraft-vae-metal-decoder/Tools/export_kvcraft_vae_decoder.py \
+  --kvcraft-root . \
   --vae-checkpoint ./pretrained/vae.pt \
-  --out ./solaris-vae-decoder-f16
+  --out ./kvcraft-vae-decoder-f16
 ```
 
 The exporter converts JAX `bfloat16` checkpoint tensors to IEEE `float16`, because Apple Metal does not expose `bfloat16` arithmetic.
@@ -64,21 +64,21 @@ B=1, T=1, H=<latent-height>, W=<latent-width>, C=16, little-endian float16
 
 The decoder CLI default latent grid is `45x80`, which decodes to `360x640` RGB. Output size is always `latent H/W * 8`. Smaller latent grids can be streamed when the server-side producer is configured for the same grid, then the decoded RGB can be upscaled for display.
 
-For the stock Solaris world-model generator, prefer even latent heights and widths. The generator patchifies latents with spatial `2x2` patches, and the action module currently has default-resolution token-count assumptions. The decoder itself can benchmark odd grids, but serving them from the unmodified generator would require padding/cropping or generator-side code changes.
+For the stock KV Craft world-model generator, prefer even latent heights and widths. The generator patchifies latents with spatial `2x2` patches, and the action module currently has default-resolution token-count assumptions. The decoder itself can benchmark odd grids, but serving them from the unmodified generator would require padding/cropping or generator-side code changes.
 
 Run:
 
 ```bash
-.build/release/solaris-vae-metal \
-  --weights /path/to/solaris-vae-decoder-f16 \
+.build/release/kvcraft-vae-metal \
+  --weights /path/to/kvcraft-vae-decoder-f16 \
   --udp-port 7777
 ```
 
 For example, a `28x50` latent grid decodes to `224x400` and measured about `12 FPS` on the synthetic benchmark:
 
 ```bash
-.build/release/solaris-vae-metal \
-  --weights /path/to/solaris-vae-decoder-f16 \
+.build/release/kvcraft-vae-metal \
+  --weights /path/to/kvcraft-vae-decoder-f16 \
   --udp-port 7777 \
   --latent-height 28 \
   --latent-width 50
@@ -87,8 +87,8 @@ For example, a `28x50` latent grid decodes to `224x400` and measured about `12 F
 For a single raw latent file:
 
 ```bash
-.build/release/solaris-vae-metal \
-  --weights /path/to/solaris-vae-decoder-f16 \
+.build/release/kvcraft-vae-metal \
+  --weights /path/to/kvcraft-vae-decoder-f16 \
   --latent latent.f16
 ```
 
@@ -97,14 +97,14 @@ For a single raw latent file:
 Create the synthetic zero-weight archive:
 
 ```bash
-python3 Tools/make_dummy_archive.py --out /tmp/solaris-vae-dummy
+python3 Tools/make_dummy_archive.py --out /tmp/kvcraft-vae-dummy
 ```
 
 Run:
 
 ```bash
-.build/release/solaris-vae-metal \
-  --weights /tmp/solaris-vae-dummy \
+.build/release/kvcraft-vae-metal \
+  --weights /tmp/kvcraft-vae-dummy \
   --benchmark 8 \
   --warmup 2
 ```
@@ -179,4 +179,4 @@ Other limits:
 - Apple public Metal/MPSGraph APIs do not expose a simple FP8/MXFP4 conv path here. The public int8/int4 MPS matmul kernels tested slower than fp16 for these conv-shaped tiles, and MPSGraph does not expose a quantized conv op in this SDK.
 - The default path now uses a full steady-state MPSGraph after the causal caches are warm. The first latent still uses the op-by-op path to seed caches.
 - The CLI decodes to a GPU tensor and logs timing; display integration should consume the output buffer or BGRA texture without CPU readback, then upscale in a render pass.
-- The weight exporter requires the Solaris Python/JAX/Orbax environment and the full `vae.pt` checkpoint directory from Hugging Face.
+- The weight exporter requires the KV Craft Python/JAX/Orbax environment and the full `vae.pt` checkpoint directory from Hugging Face.

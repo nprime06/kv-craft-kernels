@@ -199,7 +199,7 @@ final class MPSGraphOps {
             dataLayout: .NDHWC,
             weightsLayout: .DHWIO
         ) else {
-            throw SolarisMetalError.allocationFailed("MPSGraph 3D convolution descriptor")
+            throw KVCraftMetalError.allocationFailed("MPSGraph 3D convolution descriptor")
         }
         var output = graph.convolution3D(input, weights: weight, descriptor: desc, name: "conv3d")
         var biasTensor: MPSGraphTensor?
@@ -241,7 +241,7 @@ final class MPSGraphOps {
             dataLayout: .NHWC,
             weightsLayout: .HWIO
         ) else {
-            throw SolarisMetalError.allocationFailed("MPSGraph 2D convolution descriptor")
+            throw KVCraftMetalError.allocationFailed("MPSGraph 2D convolution descriptor")
         }
 
         var sum: MPSGraphTensor?
@@ -267,7 +267,7 @@ final class MPSGraphOps {
         }
 
         guard let output2D = sum else {
-            throw SolarisMetalError.invalidArgument("empty convolution kernel")
+            throw KVCraftMetalError.invalidArgument("empty convolution kernel")
         }
         var output = graph.reshape(output2D, shape: shape5(key.outputShape), name: "output_5d")
         var biasTensor: MPSGraphTensor?
@@ -318,7 +318,7 @@ final class MPSGraphOps {
             dataLayout: .NHWC,
             weightsLayout: .HWIO
         ) else {
-            throw SolarisMetalError.allocationFailed("MPSGraph 2D convolution descriptor")
+            throw KVCraftMetalError.allocationFailed("MPSGraph 2D convolution descriptor")
         }
         var output = graph.convolution2D(resized, weights: weight, descriptor: desc, name: "conv2d")
         var biasTensor: MPSGraphTensor?
@@ -365,7 +365,7 @@ final class MPSGraphOps {
                 dataLayout: .NHWC,
                 weightsLayout: .HWIO
             ) else {
-                throw SolarisMetalError.allocationFailed("MPSGraph phase convolution descriptor")
+                throw KVCraftMetalError.allocationFailed("MPSGraph phase convolution descriptor")
             }
             let weightSlice = graph.sliceTensor(weight, dimension: 0, start: phase, length: 1, name: "phase_weight_\(phase)")
             let weight2D = graph.reshape(

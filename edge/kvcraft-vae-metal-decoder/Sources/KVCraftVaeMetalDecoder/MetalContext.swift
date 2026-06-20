@@ -9,27 +9,27 @@ public final class MetalContext {
 
     public init(preferredDevice: MTLDevice? = nil) throws {
         guard let device = preferredDevice ?? MTLCreateSystemDefaultDevice() else {
-            throw SolarisMetalError.noMetalDevice
+            throw KVCraftMetalError.noMetalDevice
         }
         guard let queue = device.makeCommandQueue() else {
-            throw SolarisMetalError.allocationFailed("command queue")
+            throw KVCraftMetalError.allocationFailed("command queue")
         }
         #if SWIFT_PACKAGE
         let sourceURL = Bundle.module.url(
-            forResource: "SolarisVAE",
+            forResource: "KVCraftVAE",
             withExtension: "metal",
             subdirectory: "Kernels"
         ) ?? Bundle.module.url(
-            forResource: "SolarisVAE",
+            forResource: "KVCraftVAE",
             withExtension: "metal"
         )
         #else
         let sourceURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
-            .appendingPathComponent("Kernels/SolarisVAE.metal")
+            .appendingPathComponent("Kernels/KVCraftVAE.metal")
         #endif
         guard let sourceURL else {
-            throw SolarisMetalError.libraryLoadFailed("SolarisVAE.metal was not found in package resources")
+            throw KVCraftMetalError.libraryLoadFailed("KVCraftVAE.metal was not found in package resources")
         }
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
         let options = MTLCompileOptions()
@@ -37,7 +37,7 @@ public final class MetalContext {
         do {
             self.library = try device.makeLibrary(source: source, options: options)
         } catch {
-            throw SolarisMetalError.libraryLoadFailed(error.localizedDescription)
+            throw KVCraftMetalError.libraryLoadFailed(error.localizedDescription)
         }
         self.device = device
         self.queue = queue
@@ -48,7 +48,7 @@ public final class MetalContext {
             return existing
         }
         guard let function = library.makeFunction(name: name) else {
-            throw SolarisMetalError.pipelineFailed(name)
+            throw KVCraftMetalError.pipelineFailed(name)
         }
         let pipeline = try device.makeComputePipelineState(function: function)
         pipelines[name] = pipeline

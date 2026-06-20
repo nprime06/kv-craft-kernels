@@ -2,16 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "SolarisVaeMetalDecoder",
+    name: "KVCraftVaeMetalDecoder",
     platforms: [.macOS("15.0")],
     products: [
-        .library(name: "SolarisVaeMetalDecoder", targets: ["SolarisVaeMetalDecoder"]),
-        .executable(name: "solaris-vae-metal", targets: ["SolarisVaeMetalCLI"]),
+        .library(name: "KVCraftVaeMetalDecoder", targets: ["KVCraftVaeMetalDecoder"]),
+        .executable(name: "kvcraft-vae-metal", targets: ["KVCraftVaeMetalCLI"]),
         .executable(name: "quant-gemm-probe", targets: ["QuantGemmProbe"]),
     ],
     targets: [
         .target(
-            name: "SolarisVaeMetalDecoder",
+            name: "KVCraftVaeMetalDecoder",
             resources: [.process("Kernels")],
             linkerSettings: [
                 .linkedFramework("MetalPerformanceShaders"),
@@ -19,8 +19,8 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "SolarisVaeMetalCLI",
-            dependencies: ["SolarisVaeMetalDecoder"]
+            name: "KVCraftVaeMetalCLI",
+            dependencies: ["KVCraftVaeMetalDecoder"]
         ),
         .executableTarget(
             name: "QuantGemmProbe",

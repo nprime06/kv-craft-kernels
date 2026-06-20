@@ -51,7 +51,7 @@ final class SteadyStateGraphExecutor {
         }
         for feed in plan.cacheFeeds {
             guard let cache = caches[feed.name] else {
-                throw SolarisMetalError.invalidArgument("missing steady-state cache \(feed.name)")
+                throw KVCraftMetalError.invalidArgument("missing steady-state cache \(feed.name)")
             }
             feeds[feed.tensor] = MPSGraphTensorData(cache.buffer, shape: shape5(feed.shape), dataType: .float16)
         }
@@ -328,7 +328,7 @@ private final class SteadyStateGraphBuilder {
     ) throws -> GraphValue {
         let outShape = TensorShape(input.shape.b, input.shape.t, input.shape.h, input.shape.w, outChannels)
         guard source.shape.t == outShape.t + kernel.0 - 1 else {
-            throw SolarisMetalError.invalidArgument("steady graph conv \(base) has incompatible time shape")
+            throw KVCraftMetalError.invalidArgument("steady graph conv \(base) has incompatible time shape")
         }
         let weightTensor = weight("\(base).kernel", shape: nums([kernel.0, kernel.1, kernel.2, input.shape.c, outChannels]))
         if useNativeConv3D {
@@ -357,7 +357,7 @@ private final class SteadyStateGraphBuilder {
             dataLayout: .NHWC,
             weightsLayout: .HWIO
         ) else {
-            throw SolarisMetalError.allocationFailed("steady graph convolution descriptor")
+            throw KVCraftMetalError.allocationFailed("steady graph convolution descriptor")
         }
 
         var sum: MPSGraphTensor?
@@ -383,7 +383,7 @@ private final class SteadyStateGraphBuilder {
         }
 
         guard let output2D = sum else {
-            throw SolarisMetalError.invalidArgument("empty steady graph convolution \(base)")
+            throw KVCraftMetalError.invalidArgument("empty steady graph convolution \(base)")
         }
         var output = graph.reshape(output2D, shape: shape5(outShape), name: "\(base).output5")
         let (biasBuffer, hasBias) = weights.bias("\(base).bias")
@@ -423,7 +423,7 @@ private final class SteadyStateGraphBuilder {
             dataLayout: .NDHWC,
             weightsLayout: .DHWIO
         ) else {
-            throw SolarisMetalError.allocationFailed("steady graph native 3D convolution descriptor")
+            throw KVCraftMetalError.allocationFailed("steady graph native 3D convolution descriptor")
         }
         var output = graph.convolution3D(source.tensor, weights: weightTensor, descriptor: desc, name: "\(base).conv3d")
         let (biasBuffer, hasBias) = weights.bias("\(base).bias")
@@ -465,7 +465,7 @@ private final class SteadyStateGraphBuilder {
             dataLayout: .NHWC,
             weightsLayout: .HWIO
         ) else {
-            throw SolarisMetalError.allocationFailed("steady graph upsample convolution descriptor")
+            throw KVCraftMetalError.allocationFailed("steady graph upsample convolution descriptor")
         }
         var output = graph.convolution2D(resized, weights: weightTensor, descriptor: desc, name: "\(base).up_conv")
         let (biasBuffer, hasBias) = weights.bias("\(base).conv.bias")

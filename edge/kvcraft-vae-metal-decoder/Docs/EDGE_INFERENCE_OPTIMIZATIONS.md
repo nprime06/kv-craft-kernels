@@ -1,17 +1,17 @@
 # Edge Inference Optimization Summary
 
-This document summarizes the work done to make the Solaris VAE decoder viable for local edge inference on a Mac GPU while the world-model latents are generated on a server and streamed to the client.
+This document summarizes the work done to make the KV Craft VAE decoder viable for local edge inference on a Mac GPU while the world-model latents are generated on a server and streamed to the client.
 
-The target workload is only the VAE decoder, not the full Solaris world model. The server emits latent chunks. The Mac receives those latent chunks, keeps the decoder temporal caches warm, decodes RGB frames locally, and should eventually present them directly from GPU memory.
+The target workload is only the VAE decoder, not the full KV Craft world model. The server emits latent chunks. The Mac receives those latent chunks, keeps the decoder temporal caches warm, decodes RGB frames locally, and should eventually present them directly from GPU memory.
 
 ## Starting Point
 
 The upstream repository split matters:
 
-- `solaris-wm/solaris-engine` is the data collection engine.
-- The VAE implementation is in `solaris-wm/solaris/src/models/wan_vae.py`.
+- `kvcraft-wm/kvcraft-engine` is the data collection engine.
+- The VAE implementation is in `kvcraft-wm/kvcraft/src/models/wan_vae.py`.
 
-The Solaris WanVAE decoder configuration inspected here is:
+The KV Craft WanVAE decoder configuration inspected here is:
 
 ```text
 dim = 96
@@ -27,18 +27,18 @@ The decoder default used by the local CLI is a `45x80` latent grid, which decode
 
 The local project is a Swift package with a Metal/MPSGraph decoder runtime:
 
-- `solaris-vae-metal`: UDP/file/benchmark CLI for streamed latents.
-- `SolarisVaeMetalDecoder`: reusable Swift library for GPU tensors, weights, kernels, and decode execution.
+- `kvcraft-vae-metal`: UDP/file/benchmark CLI for streamed latents.
+- `KV CraftVaeMetalDecoder`: reusable Swift library for GPU tensors, weights, kernels, and decode execution.
 - `quant-gemm-probe`: standalone executable for native MPS int8/int4 matmul timing.
-- `Tools/export_solaris_vae_decoder.py`: exporter from Solaris/JAX/Orbax VAE weights to a simple f16 archive.
+- `Tools/export_kvcraft_vae_decoder.py`: exporter from KV Craft/JAX/Orbax VAE weights to a simple f16 archive.
 
 The runtime uses `float16` weights and activations because Apple Metal does not expose `bfloat16` arithmetic. The upstream checkpoint tensors are converted from JAX `bfloat16` to IEEE `float16` in the exporter.
 
-Full Xcode is not required for the current path. The package builds with Command Line Tools 26.5 and Swift 6.3.2. Offline `xcrun metal` is not required because the runtime compiles `SolarisVAE.metal` from package resources at startup with `device.makeLibrary(source:options:)`.
+Full Xcode is not required for the current path. The package builds with Command Line Tools 26.5 and Swift 6.3.2. Offline `xcrun metal` is not required because the runtime compiles `KV CraftVAE.metal` from package resources at startup with `device.makeLibrary(source:options:)`.
 
 ## Streaming and Cache Optimizations
 
-Solaris VAE decode is causal in time. A naive one-shot decode would repeatedly recompute temporal context. The local runtime mirrors the upstream cache behavior:
+KV Craft VAE decode is causal in time. A naive one-shot decode would repeatedly recompute temporal context. The local runtime mirrors the upstream cache behavior:
 
 - Each causal 3D convolution keeps a two-frame feature cache.
 - The first latent frame seeds caches and emits one RGB frame.
@@ -225,7 +225,7 @@ The best clean target found so far is:
 28x50 latent -> 224x400 RGB -> upscale for display
 ```
 
-That lands in the `10-15 FPS` range while keeping even latent dimensions. The stock Solaris world model uses spatial `2x2` latent patches, so even latent H/W is the safer no-architecture-change path.
+That lands in the `10-15 FPS` range while keeping even latent dimensions. The stock KV Craft world model uses spatial `2x2` latent patches, so even latent H/W is the safer no-architecture-change path.
 
 If the server cannot generate smaller latents, there are still no-retrain experiments:
 
@@ -284,7 +284,7 @@ For the current Mac path, lower spatial decode plus GPU-resident upscale is the 
 
 Before treating this as production quality:
 
-- Export real Solaris VAE weights and compare one fixed latent decode against JAX numerically.
+- Export real KV Craft VAE weights and compare one fixed latent decode against JAX numerically.
 - Test visual quality at default size and at `28x50`.
 - Test no-retrain latent resize/crop from full server latents if changing the server grid is not possible.
 - Wire the BGRA texture display path and confirm no CPU readback.

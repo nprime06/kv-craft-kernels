@@ -94,7 +94,7 @@ func printUsageAndExit(_ code: Int32) -> Never {
           quant-gemm-probe --case name,m,k,n
 
         Cases are matrix multiplications C[M,N] = A[M,K] * B[K,N].
-        The default cases approximate im2col tiles for Solaris VAE decoder 3x3x3 convs.
+        The default cases approximate im2col tiles for KVCraft VAE decoder 3x3x3 convs.
 
         """.utf8)
     )

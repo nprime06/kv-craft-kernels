@@ -1,6 +1,6 @@
 import Darwin
 import Foundation
-import SolarisVaeMetalDecoder
+import KVCraftVaeMetalDecoder
 
 struct CLI {
     var weights: URL?
@@ -17,7 +17,7 @@ struct CLI {
             let arg = arguments[i]
             func value() throws -> String {
                 guard i + 1 < arguments.count else {
-                    throw SolarisMetalError.invalidArgument("missing value for \(arg)")
+                    throw KVCraftMetalError.invalidArgument("missing value for \(arg)")
                 }
                 i += 1
                 return arguments[i]
@@ -29,7 +29,7 @@ struct CLI {
                 latentFile = URL(fileURLWithPath: try value())
             case "--udp-port":
                 guard let port = UInt16(try value()) else {
-                    throw SolarisMetalError.invalidArgument("invalid UDP port")
+                    throw KVCraftMetalError.invalidArgument("invalid UDP port")
                 }
                 udpPort = port
             case "--benchmark":
@@ -43,7 +43,7 @@ struct CLI {
             case "--help", "-h":
                 printUsageAndExit(0)
             default:
-                throw SolarisMetalError.invalidArgument("unknown argument \(arg)")
+                throw KVCraftMetalError.invalidArgument("unknown argument \(arg)")
             }
             i += 1
         }
@@ -54,9 +54,9 @@ func printUsageAndExit(_ code: Int32) -> Never {
     FileHandle.standardError.write(
         Data("""
         Usage:
-          solaris-vae-metal --weights <archive-dir> --latent <raw-f16-latent>
-          solaris-vae-metal --weights <archive-dir> --udp-port 7777
-          solaris-vae-metal --weights <archive-dir> --benchmark 20 [--warmup 2] [--latent-height H --latent-width W]
+          kvcraft-vae-metal --weights <archive-dir> --latent <raw-f16-latent>
+          kvcraft-vae-metal --weights <archive-dir> --udp-port 7777
+          kvcraft-vae-metal --weights <archive-dir> --benchmark 20 [--warmup 2] [--latent-height H --latent-width W]
 
         Latent payload format: one NHWTC frame, B=1 T=1 H=<latent-height> W=<latent-width> C=16, little-endian IEEE float16.
         Default latent size is 45x80, which decodes to 360x640 RGB. Output size is latent H/W multiplied by 8.
@@ -67,7 +67,7 @@ func printUsageAndExit(_ code: Int32) -> Never {
     exit(code)
 }
 
-func runOne(decoder: SolarisVaeDecoder, latentFile: URL) throws {
+func runOne(decoder: KVCraftVaeDecoder, latentFile: URL) throws {
     let data = try Data(contentsOf: latentFile)
     let latent = try decoder.makeLatentTensor(bytes: data)
     let start = DispatchTime.now().uptimeNanoseconds
@@ -77,9 +77,9 @@ func runOne(decoder: SolarisVaeDecoder, latentFile: URL) throws {
     print("decoded \(out.shape.t)x \(out.shape.h)x\(out.shape.w)x\(out.shape.c) frame tensor in \(String(format: "%.2f", ms)) ms")
 }
 
-func runBenchmark(decoder: SolarisVaeDecoder, latentFile: URL?, iterations: Int, warmup: Int) throws {
+func runBenchmark(decoder: KVCraftVaeDecoder, latentFile: URL?, iterations: Int, warmup: Int) throws {
     guard iterations > 0, warmup >= 0 else {
-        throw SolarisMetalError.invalidArgument("benchmark iterations must be positive and warmup must be non-negative")
+        throw KVCraftMetalError.invalidArgument("benchmark iterations must be positive and warmup must be non-negative")
     }
     let expected = 1 * 1 * decoder.latentHeight * decoder.latentWidth * 16 * 2
     let payload: Data
@@ -122,10 +122,10 @@ func runBenchmark(decoder: SolarisVaeDecoder, latentFile: URL?, iterations: Int,
     print("decode ms: mean \(String(format: "%.2f", mean)), p50 \(String(format: "%.2f", p50)), p90 \(String(format: "%.2f", p90))")
 }
 
-func runUDP(decoder: SolarisVaeDecoder, port: UInt16) throws {
+func runUDP(decoder: KVCraftVaeDecoder, port: UInt16) throws {
     let fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
     guard fd >= 0 else {
-        throw SolarisMetalError.invalidArgument("socket() failed")
+        throw KVCraftMetalError.invalidArgument("socket() failed")
     }
     defer { close(fd) }
 
@@ -140,7 +140,7 @@ func runUDP(decoder: SolarisVaeDecoder, port: UInt16) throws {
         }
     }
     guard bindResult == 0 else {
-        throw SolarisMetalError.invalidArgument("bind() failed for UDP port \(port)")
+        throw KVCraftMetalError.invalidArgument("bind() failed for UDP port \(port)")
     }
 
     let expected = 1 * 1 * decoder.latentHeight * decoder.latentWidth * 16 * 2
@@ -168,7 +168,7 @@ do {
     guard let weights = cli.weights else {
         printUsageAndExit(2)
     }
-    let decoder = try SolarisVaeDecoder(weightsURL: weights, latentHeight: cli.latentHeight, latentWidth: cli.latentWidth)
+    let decoder = try KVCraftVaeDecoder(weightsURL: weights, latentHeight: cli.latentHeight, latentWidth: cli.latentWidth)
     if let iterations = cli.benchmarkIterations {
         try runBenchmark(decoder: decoder, latentFile: cli.latentFile, iterations: iterations, warmup: cli.warmupIterations)
     } else if let latentFile = cli.latentFile {

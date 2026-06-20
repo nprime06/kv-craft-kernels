@@ -2,11 +2,11 @@
 
 Completed here:
 
-- Cloned and inspected `solaris-wm/solaris-engine` at `430f56f`.
-- Cloned and inspected `solaris-wm/solaris` at `68e0ed3`.
-- Verified the Solaris VAE config and decode flow from `src/models/model_loaders.py` and `src/models/wan_vae.py`.
+- Cloned and inspected `kvcraft-wm/kvcraft-engine` at `430f56f`.
+- Cloned and inspected `kvcraft-wm/kvcraft` at `68e0ed3`.
+- Verified the KV Craft VAE config and decode flow from `src/models/model_loaders.py` and `src/models/wan_vae.py`.
 - Verified Hugging Face model metadata includes an Orbax directory checkpoint at `vae.pt`.
-- Ran `python3 -m py_compile Tools/export_solaris_vae_decoder.py`.
+- Ran `python3 -m py_compile Tools/export_kvcraft_vae_decoder.py`.
 - Added optimized Metal entry points for tiled `1x1`, `co4` 3D/upsample convolutions, threadgroup RMSNorm, vectorized elementwise ops, and tiled online-softmax attention.
 - Added MPSGraph fast paths for 3D convolution, resize+2D convolution, and exact SDPA attention.
 - Added default cached-conv decomposition from causal 3D convolution to temporal slices of MPSGraph 2D convolution.
@@ -49,7 +49,7 @@ latent 27x48 -> RGB 216x384: fps 13.11, p50 293.05 ms
 latent 26x46 -> RGB 208x368: fps 14.22, p50 269.81 ms
 ```
 
-Odd latent dimensions are valid decoder benchmarks, but the stock Solaris generator patchifies latents with spatial `2x2` patches. For generator-side serving without padding/cropping or architecture changes, prioritize even grids such as `28x50` and `26x46`.
+Odd latent dimensions are valid decoder benchmarks, but the stock KV Craft generator patchifies latents with spatial `2x2` patches. For generator-side serving without padding/cropping or architecture changes, prioritize even grids such as `28x50` and `26x46`.
 
 - Benchmarked the old generic MPSGraph 3D convolution path:
 
@@ -116,7 +116,7 @@ fps: 0.13
 Still open:
 
 - `xcrun metal` is unavailable in the selected Command Line Tools, so offline Metal compilation is not available. Runtime source compilation works.
-- The runtime has not yet been compared numerically against JAX on real Solaris `vae.pt` weights.
+- The runtime has not yet been compared numerically against JAX on real KV Craft `vae.pt` weights.
 - The current benchmark uses zero weights, so it is a kernel/dispatch throughput test, not a quality validation.
 - There is no active XCTest target. `swift test -c release` exits with "no tests found"; use `swift build -c release` plus the benchmark command as the current validation path.
 - Native int8/int4 MPS matmul was slower than fp16 in the probe; no full-decoder quantized path is enabled.
@@ -126,8 +126,8 @@ Next validation:
 
 ```bash
 swift build -c release
-.build/release/solaris-vae-metal --weights /tmp/solaris-vae-dummy --benchmark 8 --warmup 2
-.build/release/solaris-vae-metal --weights /tmp/solaris-vae-dummy --benchmark 12 --warmup 2 --latent-height 28 --latent-width 50
+.build/release/kvcraft-vae-metal --weights /tmp/kvcraft-vae-dummy --benchmark 8 --warmup 2
+.build/release/kvcraft-vae-metal --weights /tmp/kvcraft-vae-dummy --benchmark 12 --warmup 2 --latent-height 28 --latent-width 50
 ```
 
-Then export weights and compare one streamed decode chunk against Solaris/JAX with a fixed latent tensor.
+Then export weights and compare one streamed decode chunk against KV Craft/JAX with a fixed latent tensor.

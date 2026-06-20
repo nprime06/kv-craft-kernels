@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a zero-filled Solaris VAE decoder archive for kernel benchmarking."""
+"""Create a zero-filled KVCraft VAE decoder archive for kernel benchmarking."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ class Writer:
         self.out.mkdir(parents=True, exist_ok=True)
         (self.out / "weights.f16.bin").write_bytes(self.blob)
         manifest = {
-            "format": "solaris-vae-decoder-f16-v1",
+            "format": "kvcraft-vae-decoder-f16-v1",
             "source": "synthetic zero weights for kernel benchmark",
             "tensors": self.entries,
         }

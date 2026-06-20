@@ -2,7 +2,7 @@ import Foundation
 import Metal
 import MetalPerformanceShaders
 
-public final class SolarisVaeDecoder {
+public final class KVCraftVaeDecoder {
     public let context: MetalContext
     public let weights: WeightArchive
     public let latentHeight: Int
@@ -44,10 +44,10 @@ public final class SolarisVaeDecoder {
     public func makeLatentTensor(bytes: Data) throws -> GpuTensor {
         let shape = TensorShape(1, 1, latentHeight, latentWidth, 16)
         guard bytes.count == shape.byteCountF16 else {
-            throw SolarisMetalError.invalidArgument("latent payload is \(bytes.count) bytes; expected \(shape.byteCountF16)")
+            throw KVCraftMetalError.invalidArgument("latent payload is \(bytes.count) bytes; expected \(shape.byteCountF16)")
         }
         guard let buffer = context.device.makeBuffer(bytes: [UInt8](bytes), length: bytes.count, options: .storageModeShared) else {
-            throw SolarisMetalError.allocationFailed("latent input")
+            throw KVCraftMetalError.allocationFailed("latent input")
         }
         return GpuTensor(buffer: buffer, shape: shape)
     }
@@ -55,7 +55,7 @@ public final class SolarisVaeDecoder {
     @discardableResult
     public func decode(latent: GpuTensor, waitUntilCompleted: Bool = true) throws -> GpuTensor {
         guard let rawCommandBuffer = context.queue.makeCommandBuffer() else {
-            throw SolarisMetalError.allocationFailed("command buffer")
+            throw KVCraftMetalError.allocationFailed("command buffer")
         }
         let commandBuffer = MPSCommandBuffer(commandBuffer: rawCommandBuffer)
         let out = try encodeDecode(latent: latent, commandBuffer: commandBuffer)

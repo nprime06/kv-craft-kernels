@@ -1,22 +1,22 @@
-# 2026-06-20 - Mac edge VAE decoder path for Solaris
+# 2026-06-20 - Mac edge VAE decoder path for KV Craft
 
-Added a native macOS Swift/Metal Solaris VAE decoder under:
+Added a native macOS Swift/Metal KV Craft VAE decoder under:
 
 ```text
 edge/solaris-vae-metal-decoder/
 ```
 
-This is separate from the B300/H100 server-kernel loop. It targets the client-side bottleneck in a split-serving design: the server streams Solaris latents, while the Mac decodes VAE latents to RGB locally on the Apple GPU.
+This is separate from the B300/H100 server-kernel loop. It targets the client-side bottleneck in a split-serving design: the server streams KV Craft latents, while the Mac decodes VAE latents to RGB locally on the Apple GPU.
 
 ## What was added
 
-- Static Solaris WanVAE decoder runtime for `dim=96`, `z_dim=16`, `dim_mult=[1,2,4,4]`.
+- Static KV Craft WanVAE decoder runtime for `dim=96`, `z_dim=16`, `dim_mult=[1,2,4,4]`.
 - UDP/file/benchmark CLI for one latent datagram per streamed step.
-- Causal 3D-conv cache handling matching the Solaris streaming decode contract.
+- Causal 3D-conv cache handling matching the KV Craft streaming decode contract.
 - MPSGraph fast paths for convolutions, nearest-upsample plus conv, and scaled-dot-product attention.
 - Full steady-state MPSGraph decoder path after caches are warm.
 - Custom Metal kernels for elementwise glue, cache/layout transforms, fallback conv/attention, and RGB-to-BGRA conversion.
-- Export tool for Solaris/JAX/Orbax VAE weights into a local f16 archive.
+- Export tool for KV Craft/JAX/Orbax VAE weights into a local f16 archive.
 - Quantization probe for native MPS int8/int4 matmul paths.
 - Edge optimization writeup with benchmark data and remaining blockers.
 
@@ -44,7 +44,7 @@ The current practical route to 10-15 FPS on this Mac is smaller decoded frames p
 
 ## Integration implications
 
-If the server can emit smaller even latent grids, use `28x50` or `26x46`. The stock Solaris generator patchifies latents with spatial `2x2` patches, so even latent dimensions are safest.
+If the server can emit smaller even latent grids, use `28x50` or `26x46`. The stock KV Craft generator patchifies latents with spatial `2x2` patches, so even latent dimensions are safest.
 
 If the server cannot be changed or retrained, the no-retrain experiments are:
 
@@ -55,7 +55,7 @@ Neither experiment is guaranteed to preserve quality. They should be judged visu
 
 ## Still open
 
-- Export real Solaris VAE weights and compare fixed-latent output against JAX numerically.
+- Export real KV Craft VAE weights and compare fixed-latent output against JAX numerically.
 - Wire decoded GPU tensor to BGRA texture presentation and upscale without CPU readback.
 - Measure real UDP stream latency and jitter.
 - Confirm the exact server-side latent shape in the active serving path.

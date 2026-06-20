@@ -270,7 +270,7 @@ final class MetalOps {
         commandBuffer: MTLCommandBuffer
     ) throws -> GpuTensor {
         guard let mpsGraphOps else {
-            throw SolarisMetalError.invalidArgument("phase upsample requires MPSGraph")
+            throw KVCraftMetalError.invalidArgument("phase upsample requires MPSGraph")
         }
         let phases = try mpsGraphOps.phaseUpsample2dConv(
             input,
@@ -374,7 +374,7 @@ final class MetalOps {
     ) throws {
         let pipeline = try context.pipeline(name)
         guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
-            throw SolarisMetalError.allocationFailed("compute encoder")
+            throw KVCraftMetalError.allocationFailed("compute encoder")
         }
         encoder.setComputePipelineState(pipeline)
         bind(encoder)
@@ -394,7 +394,7 @@ final class MetalOps {
     ) throws {
         let pipeline = try context.pipeline(name)
         guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
-            throw SolarisMetalError.allocationFailed("compute encoder")
+            throw KVCraftMetalError.allocationFailed("compute encoder")
         }
         encoder.setComputePipelineState(pipeline)
         bind(encoder)
@@ -414,7 +414,7 @@ final class MetalOps {
     ) throws {
         let pipeline = try context.pipeline(name)
         guard let encoder = commandBuffer.makeComputeCommandEncoder() else {
-            throw SolarisMetalError.allocationFailed("compute encoder")
+            throw KVCraftMetalError.allocationFailed("compute encoder")
         }
         encoder.setComputePipelineState(pipeline)
         bind(encoder)

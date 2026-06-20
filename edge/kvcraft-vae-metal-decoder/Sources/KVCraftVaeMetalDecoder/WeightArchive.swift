@@ -26,7 +26,7 @@ public final class WeightArchive {
     public init(url: URL, context: MetalContext) throws {
         self.context = context
         guard let zero = context.device.makeBuffer(length: 2, options: .storageModeShared) else {
-            throw SolarisMetalError.allocationFailed("zero bias")
+            throw KVCraftMetalError.allocationFailed("zero bias")
         }
         zero.contents().storeBytes(of: UInt16(0), as: UInt16.self)
         self.zeroBuffer = zero
@@ -34,21 +34,21 @@ public final class WeightArchive {
         let manifestURL = url.appendingPathComponent("manifest.json")
         let manifestData = try Data(contentsOf: manifestURL)
         let manifest = try JSONDecoder().decode(WeightManifest.self, from: manifestData)
-        guard manifest.format == "solaris-vae-decoder-f16-v1" else {
-            throw SolarisMetalError.malformedArchive("unsupported format \(manifest.format)")
+        guard manifest.format == "kvcraft-vae-decoder-f16-v1" else {
+            throw KVCraftMetalError.malformedArchive("unsupported format \(manifest.format)")
         }
         for entry in manifest.tensors {
             guard entry.dtype == "float16" else {
-                throw SolarisMetalError.malformedArchive("\(entry.name) is \(entry.dtype), expected float16")
+                throw KVCraftMetalError.malformedArchive("\(entry.name) is \(entry.dtype), expected float16")
             }
             let fileURL = url.appendingPathComponent(entry.file)
             let data = try Data(contentsOf: fileURL)
             guard entry.offset >= 0, entry.offset + entry.byteCount <= data.count else {
-                throw SolarisMetalError.malformedArchive("\(entry.name) has an invalid byte range")
+                throw KVCraftMetalError.malformedArchive("\(entry.name) has an invalid byte range")
             }
             let slice = data.subdata(in: entry.offset..<(entry.offset + entry.byteCount))
             guard let buffer = context.device.makeBuffer(bytes: [UInt8](slice), length: slice.count, options: .storageModeShared) else {
-                throw SolarisMetalError.allocationFailed("weight \(entry.name)")
+                throw KVCraftMetalError.allocationFailed("weight \(entry.name)")
             }
             buffers[entry.name] = buffer
             entries[entry.name] = entry
@@ -57,7 +57,7 @@ public final class WeightArchive {
 
     func buffer(_ name: String) throws -> MTLBuffer {
         guard let buffer = buffers[name] else {
-            throw SolarisMetalError.missingWeight(name)
+            throw KVCraftMetalError.missingWeight(name)
         }
         return buffer
     }
@@ -71,7 +71,7 @@ public final class WeightArchive {
             return existing
         }
         guard let source = buffers[name], let entry = entries[name] else {
-            throw SolarisMetalError.missingWeight(name)
+            throw KVCraftMetalError.missingWeight(name)
         }
         let shape: [Int]
         if entry.shape.count == 5, entry.shape[0] == 1 {
@@ -80,7 +80,7 @@ public final class WeightArchive {
             shape = entry.shape
         }
         guard shape.count == 4, shape[0] == 3, shape[1] == 3 else {
-            throw SolarisMetalError.malformedArchive("\(name) must have shape [3, 3, Cin, Cout] or [1, 3, 3, Cin, Cout]")
+            throw KVCraftMetalError.malformedArchive("\(name) must have shape [3, 3, Cin, Cout] or [1, 3, 3, Cin, Cout]")
         }
         let cin = shape[2]
         let cout = shape[3]
@@ -127,7 +127,7 @@ public final class WeightArchive {
         guard let buffer = folded.withUnsafeBytes({ raw in
             context.device.makeBuffer(bytes: raw.baseAddress!, length: raw.count, options: .storageModeShared)
         }) else {
-            throw SolarisMetalError.allocationFailed("folded upsample weight \(name)")
+            throw KVCraftMetalError.allocationFailed("folded upsample weight \(name)")
         }
         foldedNearest2xWeights[name] = buffer
         return buffer
